@@ -1,4 +1,5 @@
 local TileManager = require(script.Parent.TileManager)
+local BotManager = require(script.Parent.BotManager)
 
 local GameManager = {}
 GameManager.__index = GameManager
@@ -14,6 +15,8 @@ function GameManager.new()
     self.lobbyManager = require(script.Parent.LobbyManager).new(self)
     self.gameTimer = GAME_DURATION
     self.activePlayers = {}
+    self.botManager = BotManager.new()
+    self:SetupKillBrick()
     return self
 end
 
@@ -63,15 +66,32 @@ function GameManager:StartGame(readyPlayers)
         return
     end
     
+    -- Add bots if only one player
     local playerCount = 0
     for _ in pairs(readyPlayers) do
         playerCount += 1
     end
-    print(`[GameManager] Starting game with {playerCount} players`)
+    
+    print(`[GameManager] Initial player count: {playerCount}`)
+    
+    -- Add bots BEFORE setting game state
+    if playerCount == 1 then
+        print("[GameManager] Single player detected, adding bots...")
+        self:AddBots(2)
+        -- Update readyPlayers with bot data
+        for botName, _ in pairs(self.activePlayers) do
+            readyPlayers[botName] = true
+        end
+    end
     
     self.isGameRunning = true
     self.gameTimer = GAME_DURATION
     self.activePlayers = readyPlayers
+    
+    print("[GameManager] Final player list:")
+    for playerId, _ in pairs(self.activePlayers) do
+        print(`- {playerId}`)
+    end
     
     -- Notify clients that game is starting
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -83,6 +103,24 @@ function GameManager:StartGame(readyPlayers)
     print("[GameManager] Creating tile platform...")
     self.tileManager:CreateTilePlatform()
     -- print(`[GameManager] Platform created with {#self.tileManager.activeTiles} tiles`)
+    
+    -- Set up death handlers for all players
+    for userId, _ in pairs(readyPlayers) do
+        if typeof(userId) == "number" then
+            local player = game:GetService("Players"):GetPlayerByUserId(userId)
+            if player and player.Character then
+                local humanoid = player.Character:WaitForChild("Humanoid")
+                humanoid.Died:Connect(function()
+                    self:HandlePlayerDeath(userId)
+                end)
+            end
+            
+            -- Also handle when player's character is removed
+            player.CharacterRemoving:Connect(function()
+                self:HandlePlayerDeath(userId)
+            end)
+        end
+    end
     
     -- Spawn players
     self:SpawnPlayers(readyPlayers)
@@ -125,44 +163,156 @@ function GameManager:StartGame(readyPlayers)
 end
 
 function GameManager:EndGame(reason)
+    if not self.isGameRunning then return end
+    
     self.isGameRunning = false
     
     -- Notify clients that game is ending
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     ReplicatedStorage.Remotes.ClientEvent:FireAllClients("gameState", {
-        isRunning = false
+        isRunning = false,
+        endReason = reason
     })
     
     print(`[GameManager] Game ended: {reason}`)
-    -- Add any end game logic here (e.g., declaring winners, resetting players)
+    
+    -- Clean up any remaining bots
+    for playerId, _ in pairs(self.activePlayers) do
+        if typeof(playerId) == "string" and string.match(playerId, "Bot_") then
+            local bot = workspace:FindFirstChild(playerId)
+            if bot then
+                bot:Destroy()
+            end
+        end
+    end
+    
+    self.activePlayers = {}
 end
 
 function GameManager:SpawnPlayers(readyPlayers)
     if not readyPlayers then return end
     
     local spawnedCount = 0
-    local SPAWN_HEIGHT_OFFSET = 40 -- Height above the platform to spawn players
+    local SPAWN_HEIGHT_OFFSET = 40
     
-    for userId in pairs(readyPlayers) do
-        local player = game:GetService("Players"):GetPlayerByUserId(userId)
-        if player and player.Character then
-            -- Get a random tile from the platform
+    for userId, _ in pairs(readyPlayers) do
+        local character
+        if typeof(userId) == "number" then
+            -- Real player
+            local player = game:GetService("Players"):GetPlayerByUserId(userId)
+            if player then
+                character = player.Character
+            end
+        else
+            -- Bot
+            character = workspace:FindFirstChild(userId)
+        end
+        
+        if character then
             if #self.tileManager.activeTilesList > 0 then
                 local randomTile = self.tileManager.activeTilesList[math.random(1, #self.tileManager.activeTilesList)]
                 local spawnPos = randomTile.Position + Vector3.new(
-                    math.random(-3, 3), -- Random offset within tile
+                    math.random(-3, 3),
                     SPAWN_HEIGHT_OFFSET,
                     math.random(-3, 3)
                 )
                 
-                player.Character:PivotTo(CFrame.new(spawnPos))
+                character:PivotTo(CFrame.new(spawnPos))
                 spawnedCount += 1
-                print(`[GameManager] Spawned player {player.Name} at position {spawnPos}`)
+                print(`[GameManager] Spawned {character.Name} at position {spawnPos}`)
             end
         end
     end
     
-    print(`[GameManager] Spawned {spawnedCount} players`)
+    print(`[GameManager] Spawned {spawnedCount} players/bots`)
+end
+
+function GameManager:SetupKillBrick()
+    local arena = workspace:WaitForChild("Arena")
+    arena.Touched:Connect(function(hit)
+        local humanoid = hit.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+            -- Handle player/bot death
+            local model = humanoid.Parent
+            if model then
+                self:HandlePlayerDeath(model.Name)
+            end
+        end
+    end)
+    print("[GameManager] Arena kill trigger setup complete")
+end
+
+function GameManager:HandlePlayerDeath(playerNameOrId)
+    if not self.isGameRunning then return end
+    
+    print(`[GameManager] Handling death of: {playerNameOrId}`)
+    
+    -- Remove from active players
+    self.activePlayers[playerNameOrId] = nil
+    
+    -- Count remaining players
+    local remainingCount = 0
+    local lastPlayer = nil
+    for playerId, _ in pairs(self.activePlayers) do
+        remainingCount += 1
+        lastPlayer = playerId
+    end
+    
+    print(`[GameManager] Players remaining: {remainingCount}`)
+    
+    -- Check for game end (one or zero players remaining)
+    if remainingCount <= 1 then
+        if remainingCount == 1 then
+            -- Get winner name
+            local winnerName = "Unknown"
+            if typeof(lastPlayer) == "number" then
+                local player = game:GetService("Players"):GetPlayerByUserId(lastPlayer)
+                if player then
+                    winnerName = player.Name
+                end
+            else
+                winnerName = lastPlayer -- Bot name
+            end
+            self:EndGame(`{winnerName} wins!`)
+        else
+            self:EndGame("No players remaining!")
+        end
+    end
+end
+
+function GameManager:AddBots(count)
+    print(`[GameManager] Starting to add {count} bots`)
+    
+    -- Check if ReplicatedStorage has the Dummy model
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local dummyTemplate = ReplicatedStorage:FindFirstChild("Dummy")
+    if not dummyTemplate then
+        print("[GameManager] ERROR: Dummy template not found in ReplicatedStorage!")
+        return
+    end
+    print("[GameManager] Found Dummy template")
+    
+    for i = 1, count do
+        print(`[GameManager] Creating bot {i} of {count}`)
+        local bot = self.botManager:CreateBot()
+        if bot then
+            print(`[GameManager] Successfully created bot: {bot.Name}`)
+            self.activePlayers[bot.Name] = true
+            print(`[GameManager] Added bot {bot.Name} to active players`)
+        else
+            print("[GameManager] Failed to create bot!")
+        end
+    end
+    
+    -- Print final bot count
+    local botCount = 0
+    for playerId, _ in pairs(self.activePlayers) do
+        if typeof(playerId) == "string" and string.match(playerId, "Bot_") then
+            botCount += 1
+        end
+    end
+    print(`[GameManager] Total bots added: {botCount}`)
 end
 
 return GameManager 

@@ -43,6 +43,12 @@ local function handleClientEvent(eventName: string, data: any)
         -- Show/hide HUD based on game state
         HUD.Enabled = data.isRunning
         print(`[Client] HUD visibility set to {data.isRunning}`)
+        
+        -- Show end game message if game is ending
+        if not data.isRunning and data.endReason then
+            print(`[Client] Game ended: {data.endReason}`)
+            -- You can add UI here to show the end game message
+        end
     elseif eventName == "updateHUD" then
         print("[Client] DEBUG: Processing updateHUD event")
         local hudData = data
