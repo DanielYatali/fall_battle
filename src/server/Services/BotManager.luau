@@ -15,7 +15,6 @@ function BotManager.new()
 end
 
 function BotManager:CreateBot()
-    print("[BotManager] Starting bot creation...")
     
     -- Clone the dummy from ReplicatedStorage
     local dummyTemplate = game:GetService("ReplicatedStorage"):WaitForChild("Dummy")
@@ -23,14 +22,12 @@ function BotManager:CreateBot()
         print("[BotManager] ERROR: Could not find Dummy template!")
         return nil
     end
-    print("[BotManager] Found Dummy template")
     
     local botModel = dummyTemplate:Clone()
     if not botModel then
         print("[BotManager] ERROR: Failed to clone Dummy template!")
         return nil
     end
-    print("[BotManager] Cloned Dummy template")
     
     -- Set random color
     local botColor = BOT_COLORS[math.random(1, #BOT_COLORS)]
@@ -39,7 +36,6 @@ function BotManager:CreateBot()
             part.Color = botColor
         end
     end
-    print("[BotManager] Applied bot color")
     
     -- Set up humanoid
     local humanoid = botModel:WaitForChild("Humanoid")
@@ -48,16 +44,26 @@ function BotManager:CreateBot()
         botModel:Destroy()
         return nil
     end
-    print("[BotManager] Found Humanoid")
+    
+    -- Position bot on the arena
+    local arena = workspace:WaitForChild("SpawnLocation")
+    local rootPart = botModel:WaitForChild("HumanoidRootPart")
+    if rootPart then
+        -- Random position on the arena
+        local offset = Vector3.new(
+            math.random(-10, 10),
+            40, -- Slight height offset to prevent clipping
+            math.random(-10, 10)
+        )
+        rootPart.CFrame = CFrame.new(arena.Position + offset)
+    end
     
     -- Set name and parent
-    botModel.Name = BOT_NAMES[math.random(1, #BOT_NAMES)]
+    botModel.Name = BOT_NAMES[math.random(1, #BOT_NAMES)] .. "_" .. math.random(1, 1000000)
     botModel.Parent = workspace
-    print(`[BotManager] Created bot: {botModel.Name}`)
     
     -- Add basic movement behavior
     task.spawn(function()
-        print(`[BotManager] Starting movement behavior for {botModel.Name}`)
         while humanoid.Health > 0 do
             local rootPart = botModel:FindFirstChild("HumanoidRootPart")
             if rootPart and not rootPart.Anchored then
@@ -65,7 +71,6 @@ function BotManager:CreateBot()
             end
             task.wait(math.random(1, 3))
         end
-        print(`[BotManager] Bot {botModel.Name} died`)
         task.wait(1)
         botModel:Destroy()
     end)

@@ -1,4 +1,11 @@
 local TileManager = {}
+local TilesFolder = workspace:WaitForChild("Tiles")
+if not TilesFolder then
+    TilesFolder = Instance.new("Folder")
+    TilesFolder.Name = "Tiles"
+    TilesFolder.Parent = workspace
+end
+
 TileManager.__index = TileManager
 
 -- Constants
@@ -23,9 +30,9 @@ function TileManager.new()
 end
 
 function TileManager:CreateTilePlatform()
-    print("[TileManager] Starting platform creation...")
     local arena = workspace:WaitForChild("Arena")
     local centerPos = arena.Position + Vector3.new(0, BASE_HEIGHT, 0)
+    self.activeTilesList = {}
     
     local tileCount = 0
     for x = 1, GRID_SIZE.X do
@@ -43,7 +50,7 @@ function TileManager:CreateTilePlatform()
             tile.Anchored = true
             tile.Material = Enum.Material.Concrete
             tile.Color = Color3.fromRGB(200, 200, 200)
-            tile.Parent = workspace
+            tile.Parent = TilesFolder
             
             self.tiles[x][z] = tile
             -- Store in flat list for more efficient random selection
@@ -51,11 +58,9 @@ function TileManager:CreateTilePlatform()
             tileCount += 1
         end
     end
-    print(`[TileManager] Platform created with {tileCount} tiles`)
 end
 
 function TileManager:RemoveTile(tile)
-    print("[TileManager] Starting tile removal animation...")
     local tweenService = game:GetService("TweenService")
     local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
     
@@ -66,7 +71,6 @@ function TileManager:RemoveTile(tile)
     
     tween:Play()
     tween.Completed:Connect(function()
-        print("[TileManager] Tile removal complete")
         tile:Destroy()
     end)
 end
@@ -92,7 +96,6 @@ end
 
 function TileManager:RemoveRandomTile()
     if #self.activeTilesList == 0 then 
-        print("[TileManager] No tiles remaining to remove")
         return 
     end
     
@@ -104,10 +107,13 @@ function TileManager:RemoveRandomTile()
     self.activeTilesList[index] = self.activeTilesList[#self.activeTilesList]
     self.activeTilesList[#self.activeTilesList] = nil
     
-    print(`[TileManager] Selected tile {index} of {#self.activeTilesList} for removal`)
-    
-    print("[TileManager] Starting warning sequence...")
     self:WarnTile(tileToRemove)
+end
+
+function TileManager:RemoveAllTiles()
+    for _, tile in self.activeTilesList do
+        self:RemoveTile(tile)
+    end
 end
 
 return TileManager 
