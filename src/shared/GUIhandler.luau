@@ -22,19 +22,24 @@ function GUIhandler.new(player)
     local self = setmetatable({}, GUIhandler)
     self.player = player
     self.playerGui = player:WaitForChild("PlayerGui")
-    self.top = self.playerGui:WaitForChild("Top"):WaitForChild("Frame")
+    self.top = self.playerGui:WaitForChild("Top")
+    self.topFrame = self.top:WaitForChild("Frame")
+    self.top.Enabled = true
+
     self.ready = self.playerGui:WaitForChild("Ready")
+    self.ready.Enabled = true
     self.readyFrame = self.ready:WaitForChild("Frame")
     self.readyButton = self.readyFrame:WaitForChild("Ready")
     self.gameStatus = self.readyFrame:WaitForChild("GameStatus")
-    self.playerCountLabel = self.top:WaitForChild("PlayersCount")
-    self.tileCountLabel = self.top:WaitForChild("TilesCount")
-    self.timerLabel = self.top:WaitForChild("Timer")
+    self.playerCountLabel = self.topFrame:WaitForChild("PlayersCount")
+    self.tileCountLabel = self.topFrame:WaitForChild("TilesCount")
+    self.timerLabel = self.topFrame:WaitForChild("Timer")
     self.summary = self.playerGui:WaitForChild("MatchSummary")
     self.summaryFrame = self.summary:WaitForChild("Frame")
     self.summaryText = self.summaryFrame:WaitForChild("Summary")
     self.SummaryButton = self.summaryFrame:WaitForChild("TextButton")
     self.RewardAmount = self.summaryFrame:WaitForChild("RewardAmount")
+    self.gemsLabel = self.topFrame:WaitForChild("GemsCount")
 
     self.isReady = false
     self:BindEvents()
@@ -60,6 +65,18 @@ function GUIhandler:GameStart(data)
         self.ready.Enabled = false
     end
 end
+
+function GUIhandler:SetState(data)
+    print("SetState", data)
+    self.gemsLabel.Text = tostring(data.gems)
+end
+
+function GUIhandler:UpdateState(data)
+    print("UpdateState", data)
+    self.gemsLabel.Text = tostring(data.gems)
+end
+
+
 
 function GUIhandler:GameEnd(data)
     self.ready.Enabled = true

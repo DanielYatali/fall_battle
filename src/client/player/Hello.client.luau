@@ -22,6 +22,12 @@ local EventHandlers = {
     [GameEvents.Results] = function(data)
         GUI:Results(data)
     end,
+    [GameEvents.SetState] = function(data)
+        GUI:SetState(data)
+    end,
+    [GameEvents.UpdateState] = function(data)
+        GUI:UpdateState(data)
+    end,
 }
 
 

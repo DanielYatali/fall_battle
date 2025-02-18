@@ -1,10 +1,18 @@
 local GameManager = require(script.Parent.Services.GameManager)
-local gameManager = GameManager.new()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameEvents = require(ReplicatedStorage.GameEvents)
 local ClientEvent = ReplicatedStorage.Remotes.ClientEvent
 local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
+local PlayerData = require(ServerScriptService.PlayerData)
+local gameManager = GameManager.new(PlayerData)
 
+-- while true do
+--     for _, player in Players:GetPlayers() do
+--         PlayerData.UpdateGems(player, 1)
+--     end
+--     task.wait(1)
+-- end
 local EventHandlers = {
     [GameEvents.PlayerReady] = function(player, data)
         gameManager:HandlePlayerReady(player, data)

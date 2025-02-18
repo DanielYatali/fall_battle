@@ -18,12 +18,13 @@ local CONSTANTS = {
     SPAWN_HEIGHT_OFFSET = 40,
     TILE_REMOVAL_INTERVAL = 0.5,
     TILE_REMOVAL_COUNT = 10,
-    REWARD_MULTIPLIER = 1000
+    REWARD_MULTIPLIER = 20
 }
 
 --[[ Constructor ]]
-function GameManager.new()
+function GameManager.new(PlayerData)
     local self = setmetatable({}, GameManager)
+    self.PlayerData = PlayerData
     
     -- Initialize state
     self.tileManager = TileManager.new()
@@ -193,6 +194,7 @@ function GameManager:HandlePlayerDeath(playerNameOrId)
     if typeof(playerNameOrId) == "number" then
         local player = Players:GetPlayerByUserId(playerNameOrId)
         ClientEvent:FireClient(player, GameEvents.Results, {result = "You Died!", won = false,rewardAmount = rewardInt})
+        self.PlayerData.UpdateGems(player, rewardInt)
     end
     
     -- if remainingCount <= 1 then
@@ -200,6 +202,7 @@ function GameManager:HandlePlayerDeath(playerNameOrId)
             local winner, winnerType = self:GetWinner()
 
             if winnerType == "Player" then
+                self.PlayerData.UpdateGems(winner, rewardInt)
                 ClientEvent:FireClient(winner, GameEvents.Results, {result = "Winner", won = true,rewardAmount = rewardInt})
                 self:TeleportPlayerToSpawn(winner)
             end

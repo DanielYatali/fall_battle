@@ -5,7 +5,8 @@ local GameEvents = {
     GameStart = "GameStart",
     GameEnd = "GameEnd",
     Results = "Results",
-
+    SetState = "SetState",
+    UpdateState = "UpdateState",
 }
 
 return GameEvents 
