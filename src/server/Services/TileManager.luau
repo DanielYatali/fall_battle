@@ -9,7 +9,9 @@ end
 TileManager.__index = TileManager
 
 -- Constants
-local TILE_SIZE = Vector3.new(8, 1, 8) -- Increased from 4x4 to 8x8
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TileModels = ReplicatedStorage:WaitForChild("Tiles")
+local TILE_SIZE = Vector3.new(10, 1, 10) -- Updated from 8x8 to 10x10
 local GRID_SIZE = Vector2.new(20, 20) -- Increased from 10x10 to 20x20
 local BASE_HEIGHT = 10 -- Height from baseplate
 local WARNING_TIME = 2 -- Time in seconds to show warning
@@ -38,59 +40,100 @@ function TileManager:CreateTilePlatform()
     for x = 1, GRID_SIZE.X do
         self.tiles[x] = {}
         for z = 1, GRID_SIZE.Y do
-            local position = centerPos + Vector3.new(
-                (x - GRID_SIZE.X/2) * TILE_SIZE.X,
-                0,
-                (z - GRID_SIZE.Y/2) * TILE_SIZE.Z
-            )
+            -- Calculate grid position relative to center
+            local gridX = (x - GRID_SIZE.X/2 - 0.5) * TILE_SIZE.X
+            local gridZ = (z - GRID_SIZE.Y/2 - 0.5) * TILE_SIZE.Z
+            local position = centerPos + Vector3.new(gridX, 0, gridZ)
             
-            local tile = Instance.new("Part")
-            tile.Size = TILE_SIZE
-            tile.Position = position
-            tile.Anchored = true
-            tile.Material = Enum.Material.Concrete
-            tile.Color = Color3.fromRGB(200, 200, 200)
-            tile.Parent = TilesFolder
+            -- Randomly select one of the three tile models
+            local modelNumber = math.random(1, 5)
+            local tileModel = TileModels:WaitForChild("Block" .. modelNumber):Clone()
+            local tilePart = tileModel:WaitForChild("Part")
             
-            self.tiles[x][z] = tile
-            -- Store in flat list for more efficient random selection
-            table.insert(self.activeTilesList, tile)
+            -- Set the position using PivotTo
+            tileModel:PivotTo(CFrame.new(position))
+            tilePart.Anchored = true
+            -- tilePart.Color = Color3.fromRGB(200, 200, 200)
+            tileModel.Parent = TilesFolder
+            
+            self.tiles[x][z] = tileModel
+            table.insert(self.activeTilesList, tileModel)
             tileCount += 1
         end
     end
 end
 
-function TileManager:RemoveTile(tile)
+function TileManager:RemoveTile(tileModel)
     local tweenService = game:GetService("TweenService")
     local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
     
-    local tween = tweenService:Create(tile, tweenInfo, {
-        Position = tile.Position - Vector3.new(0, 10, 0),
-        Transparency = 1
-    })
+    -- Create explosion effect
+    local explosion = Instance.new("Explosion")
+    explosion.BlastPressure = 0  -- No physics force
+    explosion.BlastRadius = 0
+    explosion.Position = tileModel:GetPivot().Position
+    explosion.DestroyJointRadiusPercent = 0
+    explosion.Parent = workspace
     
-    tween:Play()
-    tween.Completed:Connect(function()
-        tile:Destroy()
-    end)
+    -- Create smoke effect
+    local smoke = Instance.new("Smoke")
+    smoke.Color = Color3.fromRGB(100, 100, 100)
+    smoke.Size = 0.5
+    smoke.RiseVelocity = 2
+    smoke.Parent = tileModel:WaitForChild("Part")
+    
+    -- Tween the whole model down
+    local currentCFrame = tileModel:GetPivot()
+    local targetCFrame = currentCFrame * CFrame.new(0, -10, 0)
+    
+    local function tweenModel()
+        local delta = 0
+        local startTime = tick()
+        
+        while delta < 1 do
+            local currentTime = tick()
+            delta = (currentTime - startTime) / tweenInfo.Time
+            
+            -- Interpolate CFrame
+            local lerpedCFrame = currentCFrame:Lerp(targetCFrame, delta)
+            tileModel:PivotTo(lerpedCFrame)
+            
+            task.wait()
+        end
+        
+        tileModel:Destroy()
+    end
+    
+    task.spawn(tweenModel)
 end
 
-function TileManager:WarnTile(tile)
+function TileManager:WarnTile(tileModel)
+    local tilePart = tileModel:WaitForChild("Part")
+    
+    -- Create warning particles
+    local warning = Instance.new("ParticleEmitter")
+    warning.Color = ColorSequence.new(WARNING_COLOR)
+    warning.Size = NumberSequence.new(0.5)
+    warning.Rate = 20
+    warning.Speed = NumberRange.new(2)
+    warning.Lifetime = NumberRange.new(0.5)
+    warning.Parent = tilePart
+    
     -- Use fewer property changes
     local function flash()
-        tile.Color = WARNING_COLOR
-        tile.Material = Enum.Material.Neon
+        tilePart.Material = Enum.Material.Neon
         task.wait(0.3)
-        tile.Color = DEFAULT_COLOR
+        tilePart.Material = Enum.Material.Plastic
         task.wait(0.3)
     end
     
     -- Use a single task.spawn instead of multiple
     task.spawn(function()
-        for i = 1, 3 do -- Fixed number of flashes instead of time-based
+        for i = 1, 3 do
             flash()
         end
-        self:RemoveTile(tile)
+        warning:Destroy()
+        self:RemoveTile(tileModel)
     end)
 end
 
