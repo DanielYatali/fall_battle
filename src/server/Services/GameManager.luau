@@ -17,7 +17,8 @@ local CONSTANTS = {
     MINIMUM_PLAYERS = 2,
     SPAWN_HEIGHT_OFFSET = 40,
     TILE_REMOVAL_INTERVAL = 0.5,
-    TILE_REMOVAL_COUNT = 10
+    TILE_REMOVAL_COUNT = 10,
+    REWARD_MULTIPLIER = 1000
 }
 
 --[[ Constructor ]]
@@ -112,10 +113,10 @@ function GameManager:CheckGameEnd()
         return
     end
     
-    if #self.tileManager.activeTilesList == 0 then
-        self:EndGame("No tiles left!")
-        return
-    end
+    -- if #self.tileManager.activeTilesList == 0 then
+    --     self:EndGame("No tiles left!")
+    --     return
+    -- end
     
     -- Check if we have enough active players
     local activePlayerCount = self:GetCount(self.activePlayers)
@@ -146,7 +147,7 @@ function GameManager:StartGame(readyPlayers)
     
     -- Setup game environment
     self:NotifyGameStart()
-    self:SetupPlayerDeathHandlers(self.activePlayers)
+    -- self:SetupPlayerDeathHandlers(self.activePlayers)
     self:SpawnPlayers(self.activePlayers)
 
     self:StartTileRemovalLoop()
@@ -185,11 +186,21 @@ function GameManager:HandlePlayerDeath(playerNameOrId)
     self.activePlayers[playerNameOrId] = nil
     
     local remainingCount = self:GetCount(self.activePlayers)
+    local rewardAmount = CONSTANTS.REWARD_MULTIPLIER / (remainingCount + 1)
+    local rewardInt = math.floor(rewardAmount)
+    --this could error because of bot so we handle it
+    --convert playerNameOrId to number
+    if typeof(playerNameOrId) == "number" then
+        local player = Players:GetPlayerByUserId(playerNameOrId)
+        ClientEvent:FireClient(player, GameEvents.Results, {result = "You Died!", won = false,rewardAmount = rewardInt})
+    end
     
-    if remainingCount <= 1 then
+    -- if remainingCount <= 1 then
         if remainingCount == 1 then
             local winner, winnerType = self:GetWinner()
+
             if winnerType == "Player" then
+                ClientEvent:FireClient(winner, GameEvents.Results, {result = "Winner", won = true,rewardAmount = rewardInt})
                 self:TeleportPlayerToSpawn(winner)
             end
             local winnerName = winner.Name
@@ -197,10 +208,12 @@ function GameManager:HandlePlayerDeath(playerNameOrId)
                 winnerName = winner
             end
             self:EndGame(`{winnerName} wins!`)
-        else
-            self:EndGame("No players remaining!")
+        -- else
+        --     ClientEvent:FireClient(player, GameEvents.Results, {result = "You Died!", won = false,rewardAmount = rewardInt})
+        --     self:EndGame("No players remaining!")
         end
-    end
+
+    -- end
 end
 
 --[[ Bot Management ]]
@@ -304,24 +317,24 @@ function GameManager:SetupKillBrick()
     end)
 end
 
-function GameManager:SetupPlayerDeathHandlers(readyPlayers)
-    for userId, _ in pairs(readyPlayers) do
-        if typeof(userId) == "number" then
-            local player = Players:GetPlayerByUserId(userId)
-            if player and player.Character then
-                local humanoid = player.Character:WaitForChild("Humanoid")
-                humanoid.Died:Connect(function()
-                    self:HandlePlayerDeath(userId)
-                end)
-            end
+-- function GameManager:SetupPlayerDeathHandlers(readyPlayers)
+--     for userId, _ in pairs(readyPlayers) do
+--         if typeof(userId) == "number" then
+--             local player = Players:GetPlayerByUserId(userId)
+--             if player and player.Character then
+--                 local humanoid = player.Character:WaitForChild("Humanoid")
+--                 humanoid.Died:Connect(function()
+--                     self:HandlePlayerDeath(userId)
+--                 end)
+--             end
             
-            -- Also handle when player's character is removed
-            player.CharacterRemoving:Connect(function()
-                self:HandlePlayerDeath(userId)
-            end)
-        end
-    end
-end
+--             -- Also handle when player's character is removed
+--             player.CharacterRemoving:Connect(function()
+--                 self:HandlePlayerDeath(userId)
+--             end)
+--         end
+--     end
+-- end
 
 function GameManager:StartTileRemovalLoop()
     task.spawn(function()

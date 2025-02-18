@@ -4,6 +4,7 @@ local GameEvents = {
     RequestGameState = "RequestGameState",
     GameStart = "GameStart",
     GameEnd = "GameEnd",
+    Results = "Results",
 
 }
 

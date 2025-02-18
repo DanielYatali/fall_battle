@@ -6,11 +6,15 @@ local GUIhandler = {}
 GUIhandler.__index = GUIhandler
 
 
+
 function GUIhandler:BindEvents()
     self.readyButton.MouseButton1Click:Connect(function()
         self.isReady = not self.isReady
-        self.readyButton.Text = self.isReady and "Cancel Ready" or "Ready Up"
+        self.readyButton.Text = self.isReady and "Cancel" or "Ready Up"
         ClientEvent:FireServer(GameEvents.PlayerReady, self.isReady)
+    end)
+    self.SummaryButton.MouseButton1Click:Connect(function()
+        self.summary.Enabled = false
     end)
 end
 
@@ -18,13 +22,20 @@ function GUIhandler.new(player)
     local self = setmetatable({}, GUIhandler)
     self.player = player
     self.playerGui = player:WaitForChild("PlayerGui")
-    self.hud = self.playerGui:WaitForChild("HUD")
-    self.lobby = self.playerGui:WaitForChild("Lobby")
-    self.readyButton = self.lobby:WaitForChild("Frame"):WaitForChild("Ready")
-    self.gameStatus = self.lobby:WaitForChild("Frame"):WaitForChild("GameStatus")
-    self.playerCountLabel = self.hud:WaitForChild("PlayerCount"):WaitForChild("TextLabel")
-    self.tileCountLabel = self.hud:WaitForChild("TileCount"):WaitForChild("TextLabel")
-    self.timerLabel = self.hud:WaitForChild("Timer"):WaitForChild("TextLabel")
+    self.top = self.playerGui:WaitForChild("Top"):WaitForChild("Frame")
+    self.ready = self.playerGui:WaitForChild("Ready")
+    self.readyFrame = self.ready:WaitForChild("Frame")
+    self.readyButton = self.readyFrame:WaitForChild("Ready")
+    self.gameStatus = self.readyFrame:WaitForChild("GameStatus")
+    self.playerCountLabel = self.top:WaitForChild("PlayersCount")
+    self.tileCountLabel = self.top:WaitForChild("TilesCount")
+    self.timerLabel = self.top:WaitForChild("Timer")
+    self.summary = self.playerGui:WaitForChild("MatchSummary")
+    self.summaryFrame = self.summary:WaitForChild("Frame")
+    self.summaryText = self.summaryFrame:WaitForChild("Summary")
+    self.SummaryButton = self.summaryFrame:WaitForChild("TextButton")
+    self.RewardAmount = self.summaryFrame:WaitForChild("RewardAmount")
+
     self.isReady = false
     self:BindEvents()
     return self
@@ -46,12 +57,12 @@ function GUIhandler:GameStart(data)
         -- reset the ready button and hide the lobby frame
         self.readyButton.Text = "Ready Up"
         self.isReady = false
-        self.lobby.Enabled = false
+        self.ready.Enabled = false
     end
 end
 
 function GUIhandler:GameEnd(data)
-    self.lobby.Enabled = true
+    self.ready.Enabled = true
     self.readyButton.Text = "Ready Up"
     self.isReady = false
     self.readyButton.Visible = true
@@ -59,20 +70,6 @@ function GUIhandler:GameEnd(data)
         self.gameStatus.Text = data.reason
     end
 end
-
--- function GUIhandler:GameState(data)
---     if data.isRunning then
---         self.gameStatus.Text = "Game in Progress"
---         self.readyButton.Visible = false
---     else
---         self.gameStatus.Text = "Waiting for Players"
---         self.readyButton.Visible = true
---         if data.endReason then
---             self.gameStatus.Text = data.endReason
---         end
---     end
--- end
-
 
 
 function GUIhandler:UpdateHUD(data)
@@ -89,6 +86,12 @@ function GUIhandler:UpdateHUD(data)
         self.readyButton.Visible = true
     end
 
+end
+
+function GUIhandler:Results(data)
+    self.summaryText.Text = data.result
+    self.RewardAmount.Text = data.rewardAmount
+    self.summary.Enabled = true
 end
 
 return GUIhandler

@@ -19,6 +19,9 @@ local EventHandlers = {
     [GameEvents.UpdateHUD] = function(data)
         GUI:UpdateHUD(data)
     end,
+    [GameEvents.Results] = function(data)
+        GUI:Results(data)
+    end,
 }
 
 
