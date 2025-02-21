@@ -18,6 +18,17 @@ local WARNING_TIME = 2 -- Time in seconds to show warning
 local WARNING_COLOR = Color3.fromRGB(255, 100, 100) -- Red warning color
 local DEFAULT_COLOR = Color3.fromRGB(200, 200, 200)
 
+-- Add these new constants after the other constants
+local LAYOUTS = {
+    FULL = "full",
+    CHECKERBOARD = "checkerboard",
+    SPIRAL = "spiral",
+    CROSS = "cross",
+    DONUT = "donut",
+}
+
+TileManager.LAYOUTS = LAYOUTS -- Make layouts accessible to other modules
+
 -- Make constants accessible to other modules
 TileManager.GRID_SIZE = GRID_SIZE
 TileManager.TILE_SIZE = TILE_SIZE
@@ -31,7 +42,44 @@ function TileManager.new()
     return self
 end
 
+function TileManager:ShouldCreateTile(x, z, layout)
+    local centerX = GRID_SIZE.X / 2
+    local centerZ = GRID_SIZE.Y / 2
+    
+    if layout == LAYOUTS.FULL then
+        return true
+    elseif layout == LAYOUTS.CHECKERBOARD then
+        return (x + z) % 2 == 0
+    elseif layout == LAYOUTS.SPIRAL then
+        -- Create a spiral pattern
+        local dx = x - centerX
+        local dz = z - centerZ
+        local distance = math.sqrt(dx * dx + dz * dz)
+        return (distance + math.atan2(dz, dx) * 2) % 4 < 2
+    elseif layout == LAYOUTS.CROSS then
+        -- Create a cross/plus pattern
+        local margin = GRID_SIZE.X * 0.2 -- 20% margin
+        return (math.abs(x - centerX) < margin) or (math.abs(z - centerZ) < margin)
+    elseif layout == LAYOUTS.DONUT then
+        -- Create a donut/ring pattern
+        local dx = x - centerX
+        local dz = z - centerZ
+        local distance = math.sqrt(dx * dx + dz * dz)
+        local innerRadius = GRID_SIZE.X * 0.2 -- 20% inner radius
+        local outerRadius = GRID_SIZE.X * 0.4 -- 40% outer radius
+        return distance > innerRadius and distance < outerRadius
+    end
+    return true
+end
+
 function TileManager:CreateTilePlatform()
+    local layouts = {"spiral", "cross", "donut", "checkerboard"}
+    local layout = layouts[math.random(1, #layouts)]
+    print("Layout: " .. layout)
+    -- layout = layout or LAYOUTS.FULL -- Default to full layout if none specified
+    
+
+    
     local arena = workspace:WaitForChild("Arena")
     local centerPos = arena.Position + Vector3.new(0, BASE_HEIGHT, 0)
     self.activeTilesList = {}
@@ -40,12 +88,16 @@ function TileManager:CreateTilePlatform()
     for x = 1, GRID_SIZE.X do
         self.tiles[x] = {}
         for z = 1, GRID_SIZE.Y do
+            if not self:ShouldCreateTile(x, z, layout) then
+                continue
+            end
+            
             -- Calculate grid position relative to center
             local gridX = (x - GRID_SIZE.X/2 - 0.5) * TILE_SIZE.X
             local gridZ = (z - GRID_SIZE.Y/2 - 0.5) * TILE_SIZE.Z
             local position = centerPos + Vector3.new(gridX, 0, gridZ)
             
-            -- Randomly select one of the three tile models
+            -- Randomly select one of the tile models
             local modelNumber = math.random(1, 5)
             local tileModel = TileModels:WaitForChild("Block" .. modelNumber):Clone()
             local tilePart = tileModel:WaitForChild("Part")

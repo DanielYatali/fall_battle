@@ -5,8 +5,6 @@ local GameEvents = require(ReplicatedStorage.GameEvents)
 local GUIhandler = {}
 GUIhandler.__index = GUIhandler
 
-
-
 function GUIhandler:BindEvents()
     self.readyButton.MouseButton1Click:Connect(function()
         self.isReady = not self.isReady
@@ -52,12 +50,12 @@ function GUIhandler:GameStart(data)
     if data.players then
         print("Players table:", data.players)
         print("Looking for player ID:", self.player.UserId)
-        
+
         -- Convert UserId to string for table lookup
         inGame = data.players[tostring(self.player.UserId)] == true
         print("Is player in game?", inGame)
     end
-    
+
     if inGame then
         -- reset the ready button and hide the lobby frame
         self.readyButton.Text = "Ready Up"
@@ -76,8 +74,6 @@ function GUIhandler:UpdateState(data)
     self.gemsLabel.Text = tostring(data.gems)
 end
 
-
-
 function GUIhandler:GameEnd(data)
     self.ready.Enabled = true
     self.readyButton.Text = "Ready Up"
@@ -88,13 +84,10 @@ function GUIhandler:GameEnd(data)
     end
 end
 
-
 function GUIhandler:UpdateHUD(data)
     self.playerCountLabel.Text = tostring(data.playerCount)
     self.tileCountLabel.Text = tostring(data.tileCount)
-    self.timerLabel.Text = string.format("%d:%02d", 
-        math.floor(data.timeLeft / 60),
-        math.floor(data.timeLeft % 60))
+    self.timerLabel.Text = string.format("%d:%02d", math.floor(data.timeLeft / 60), math.floor(data.timeLeft % 60))
     if data.isGameRunning then
         self.gameStatus.Text = "Game in Progress"
         self.readyButton.Visible = false
@@ -112,5 +105,4 @@ function GUIhandler:Results(data)
 end
 
 return GUIhandler
-
 

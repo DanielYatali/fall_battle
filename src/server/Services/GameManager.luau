@@ -17,7 +17,7 @@ local CONSTANTS = {
     MINIMUM_PLAYERS = 2,
     SPAWN_HEIGHT_OFFSET = 40,
     TILE_REMOVAL_INTERVAL = 0.5,
-    TILE_REMOVAL_COUNT = 10,
+    TILE_REMOVAL_COUNT = 1,
     REWARD_MULTIPLIER = 20
 }
 
@@ -128,7 +128,9 @@ end
 
 
 function GameManager:StartGame(readyPlayers)
+    print("Starting game")
     if self.isGameRunning or not readyPlayers then return end
+    print("Game not running and ready players exist")
     
     -- Initialize game state first
     self.isGameRunning = true
@@ -281,7 +283,8 @@ function GameManager:SpawnPlayers(readyPlayers)
         if character then
             if #self.tileManager.activeTilesList > 0 then
                 local randomTile = self.tileManager.activeTilesList[math.random(1, #self.tileManager.activeTilesList)]
-                local spawnPos = randomTile.Position + Vector3.new(
+                local tilePosition = randomTile:GetPivot().Position
+                local spawnPos = tilePosition + Vector3.new(
                     math.random(-3, 3),
                     CONSTANTS.SPAWN_HEIGHT_OFFSET,
                     math.random(-3, 3)
@@ -298,6 +301,10 @@ end
 function GameManager:SetupKillBrick()
     local arena = workspace:WaitForChild("Arena")
     arena.Touched:Connect(function(hit)
+        if(hit.Parent == nil) then 
+            print("Hit parent is nil")
+            return 
+        end
         local humanoid = hit.Parent:FindFirstChild("Humanoid")
         if humanoid and humanoid.Health > 0 then
             local model = humanoid.Parent
@@ -351,22 +358,22 @@ function GameManager:StartTileRemovalLoop()
 end
 
 
-function GameManager:HandleRequestGameState(player)
-    print(`[GameManager] Handling request game state for {player.Name}`)
-    print(`[GameManager] Game running: {self.isGameRunning}`)
-    -- Send current game state
-    ClientEvent:FireClient(player, GameEvents.GameState, {
-        isRunning = self.isGameRunning,
-        endReason = nil
-    })
+-- function GameManager:HandleRequestGameState(player)
+--     print(`[GameManager] Handling request game state for {player.Name}`)
+--     print(`[GameManager] Game running: {self.isGameRunning}`)
+--     -- Send current game state
+--     ClientEvent:FireClient(player, GameEvents.GameState, {
+--         isRunning = self.isGameRunning,
+--         endReason = nil
+--     })
 
-    -- Send current HUD data
-    ClientEvent:FireClient(player, GameEvents.UpdateHUD, {
-        playerCount = self:GetCount(self.isGameRunning and self.activePlayers or self.readyPlayers),
-        tileCount = #self.tileManager.activeTilesList,
-        timeLeft = self.isGameRunning and self.gameTimer or self.lobbyTimer
-    })
-end
+--     -- Send current HUD data
+--     ClientEvent:FireClient(player, GameEvents.UpdateHUD, {
+--         playerCount = self:GetCount(self.isGameRunning and self.activePlayers or self.readyPlayers),
+--         tileCount = #self.tileManager.activeTilesList,
+--         timeLeft = self.isGameRunning and self.gameTimer or self.lobbyTimer
+--     })
+-- end
 
 function GameManager:TeleportPlayerToSpawn(player)
     player.Character:PivotTo(SpawnLocation.CFrame + Vector3.new(0, 20, 0))

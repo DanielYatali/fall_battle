@@ -4,8 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClientEvent = ReplicatedStorage.Remotes.ClientEvent
 local GameEvents = require(ReplicatedStorage.GameEvents)
 local localPlayer = Players.LocalPlayer
+-- local AnimationController = require(ReplicatedStorage.AnimationController)
 
--- end)
 local GUIhandler = require(ReplicatedStorage.GUIhandler)
 local GUI = GUIhandler.new(localPlayer)
 
@@ -27,14 +27,13 @@ local EventHandlers = {
     end,
     [GameEvents.UpdateState] = function(data)
         GUI:UpdateState(data)
-    end,
+    end
 }
-
-
 
 -- Handle server events
 ClientEvent.OnClientEvent:Connect(function(eventName, data)
     if EventHandlers[eventName] then
+        -- print("Event received:", eventName, data)
         EventHandlers[eventName](data)
     end
 end)
@@ -44,14 +43,14 @@ print("[Client] UI Setup Complete")
 -- Add character spawned handler
 localPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid")
-    
+
     -- Optional: Add character modifications here
     humanoid.WalkSpeed = 16
     humanoid.JumpPower = 50
-    
+
     -- Reinitialize the GUI handler
     GUI = GUIhandler.new(localPlayer)
-    
+
     -- Request current game state
     -- ClientEvent:FireServer(GameEvents.RequestGameState)
 end)
