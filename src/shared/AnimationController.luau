@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local Logger = require(script.Parent.Logger)
 
+
 local AnimationController = {}
 
 local Animations = {
@@ -9,6 +10,12 @@ local Animations = {
         id = "rbxassetid://80125441179209",
         speed = 1.5,
         transitionTime = 0.2,
+        weight = 1.0
+    },
+    kick = {
+        id = "rbxassetid://122338185942084", -- Replace with actual push animation ID
+        speed = 1.0,
+        transitionTime = 0.1,
         weight = 1.0
     }
 }
@@ -84,5 +91,12 @@ end
 
 -- Handle character respawning
 player.CharacterAdded:Connect(initializeAnimator)
+
+-- Add to event handling
+-- ClientEvent.OnClientEvent:Connect(function(eventName, data)
+--     if eventName == GameEvents.PlayAnimation then
+--         AnimationController.playAnimation(data.name)
+--     end
+-- end)
 
 return AnimationController

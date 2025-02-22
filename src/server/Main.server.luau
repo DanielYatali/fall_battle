@@ -28,10 +28,61 @@ end
 --     end
 --     task.wait(1)
 -- end
+local handleKick = function(player, data)
+    local processedCharacters = {}
+    
+    -- Validate and apply damage/knockback to all hit characters
+    for _, hitResult in ipairs(data) do
+        local character = hitResult.character
+        
+        -- Skip if we've already processed this character
+        if processedCharacters[character] then
+            continue
+        end
+        processedCharacters[character] = true
+        
+        local instance = hitResult.instance
+        
+        -- Get required components
+        local humanoid = character:FindFirstChild("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        
+        if humanoid and rootPart then
+            print("Applying damage to character: " .. character.Name)
+            -- Apply damage
+            local damage = 10
+            humanoid:TakeDamage(damage)
+            
+            -- Make sure the part can receive physics impulses
+            rootPart.Anchored = false
+            rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0) -- Reset current velocity
+            
+            -- Calculate knockback direction and force
+            local knockbackForce = 300 -- Increased force
+            local upwardForce = 500 -- Increased upward force
+            
+            -- Get kick direction from the instance's CFrame
+            local kickDirection = instance.CFrame.LookVector
+            
+            -- Apply horizontal and vertical impulse
+            local impulseVector = (kickDirection * knockbackForce) + Vector3.new(0, upwardForce, 0)
+            print("Applying impulse: " .. tostring(impulseVector))
+            
+            -- Try both methods of applying force
+            rootPart:ApplyImpulse(impulseVector)
+            rootPart.AssemblyLinearVelocity = impulseVector / rootPart:GetMass()
+            
+            -- Ensure character state allows movement
+            humanoid.PlatformStand = false
+            humanoid.AutoRotate = true
+        end
+    end
+end
 local EventHandlers = {
     [GameEvents.PlayerReady] = function(player, data)
         gameManager:HandlePlayerReady(player, data)
-    end
+    end,
+    [GameEvents.Kick] = handleKick
 }
 
 -- Handle player ready events

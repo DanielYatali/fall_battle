@@ -2,6 +2,7 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local DoubleJumpHandler = require(script.Parent.DoubleJumpHandler)
 local Logger = require(game:GetService("ReplicatedStorage").Logger)
+local KickHandler = require(script.Parent.KickHandler)
 
 local MovementController = {}
 
@@ -18,7 +19,10 @@ local state = {
 
     -- Connections
     InputBeganConnection = nil,
-    InputEndedConnection = nil
+    InputEndedConnection = nil,
+
+    -- New state
+    Push = nil,
 }
 
 local function cancelCurrentMovement()
@@ -42,6 +46,10 @@ local function bindInputs()
             if input.KeyCode == Enum.KeyCode.Space then
                 cancelCurrentMovement()
             end
+
+            if input.KeyCode == Enum.KeyCode.E then
+                KickHandler.Activate()
+            end
         end)
 end
 
@@ -57,6 +65,7 @@ function MovementController.onStart(newCharacter)
 
     -- Initialize movements
     state.DoubleJump = DoubleJumpHandler.new(state.Humanoid, state.RootPart)
+    state.Kick = KickHandler.new(state.Humanoid, state.RootPart, state.Character)
 
     -- Bind events
     bindInputs()
@@ -78,6 +87,10 @@ function MovementController.destroy()
 
     if state.DoubleJump then
         state.DoubleJump:destroy()
+    end
+
+    if state.Push then
+        state.Push:destroy()
     end
 
     -- Reset all state

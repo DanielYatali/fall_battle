@@ -1,12 +1,11 @@
 local UserInputService = game:GetService("UserInputService")
-local Logger = require(game:GetService("ReplicatedStorage").Logger)
 local Animator = require(game:GetService("ReplicatedStorage").AnimationController)
 
 local DoubleJumpHandler = {}
 
 -- Configuration
 local MAX_JUMPS = 2
-local JUMP_COOLDOWN = 0.1
+local JUMP_COOLDOWN = 0.15
 local DOUBLE_JUMP_FORCE = 80 -- Adjust this value to change jump height
 
 -- Module state
