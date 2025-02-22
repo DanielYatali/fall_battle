@@ -13,7 +13,7 @@ GameManager.__index = GameManager
 local CONSTANTS = {
     GAME_DURATION = 300, -- 5 minutes
     HUD_UPDATE_INTERVAL = 1,
-    LOBBY_COUNTDOWN = 5,
+    LOBBY_COUNTDOWN = 20,
     MINIMUM_PLAYERS = 2,
     SPAWN_HEIGHT_OFFSET = 40,
     TILE_REMOVAL_INTERVAL = 0.5,
@@ -34,6 +34,7 @@ function GameManager.new(PlayerData)
     self.lobbyTimer = CONSTANTS.LOBBY_COUNTDOWN
     self.activePlayers = {}
     self.readyPlayers = {}
+    self.tilesGenerated = false
     
     -- Setup initial game state
     self:InitializeGame()
@@ -99,10 +100,25 @@ function GameManager:HandlePlayerReady(player, isReady)
     
     if isReady then
         self.readyPlayers[player.UserId] = true
+        
+        -- Generate tiles when first player readies up
+        if not self.tilesGenerated then
+            task.spawn(function()
+                self.tileManager:CreateTilePlatform()
+                self.tilesGenerated = true
+            end)
+        end
     else
         self.readyPlayers[player.UserId] = nil
+        
+        -- If no players are ready, clean up tiles
+        -- if self:GetReadyPlayerCount() == 0 then
+        --     self.tileManager:RemoveAllTiles()
+        --     self.tilesGenerated = false
+        -- end
     end
 end
+
 function GameManager:CheckGameEnd()
     if not self.isGameRunning then return end -- Safety check
     
@@ -126,7 +142,6 @@ function GameManager:CheckGameEnd()
     end
 end
 
-
 function GameManager:StartGame(readyPlayers)
     print("Starting game")
     if self.isGameRunning or not readyPlayers then return end
@@ -136,7 +151,12 @@ function GameManager:StartGame(readyPlayers)
     self.isGameRunning = true
     self.gameTimer = CONSTANTS.GAME_DURATION
     self.activePlayers = {}  -- Clear active players before adding new ones
-    self.tileManager:CreateTilePlatform()
+    
+    -- Only generate tiles if they haven't been generated yet
+    if not self.tilesGenerated then
+        self.tileManager:CreateTilePlatform()
+        self.tilesGenerated = true
+    end
     
     -- Handle single player case
     if self:GetReadyPlayerCount() == 1 then
@@ -150,13 +170,12 @@ function GameManager:StartGame(readyPlayers)
     
     -- Setup game environment
     self:NotifyGameStart()
-    -- self:SetupPlayerDeathHandlers(self.activePlayers)
     self:SpawnPlayers(self.activePlayers)
-
     self:StartTileRemovalLoop()
     
     print("[GameManager] Game started with players:", self:GetCount(self.activePlayers))
 end
+
 function GameManager:NotifyGameStart()
     ClientEvent:FireAllClients(GameEvents.GameStart, {players  = self.activePlayers})
 end
@@ -164,7 +183,6 @@ end
 function GameManager:NotifyGameEnd(reason)
     ClientEvent:FireAllClients(GameEvents.GameEnd, {reason = reason})
 end
-
 
 function GameManager:EndGame(reason)
     if not self.isGameRunning then return end
@@ -176,11 +194,8 @@ function GameManager:EndGame(reason)
     self.gameTimer = CONSTANTS.GAME_DURATION
     task.wait(2)
     self.tileManager:RemoveAllTiles()
+    self.tilesGenerated = false  -- Reset the flag when game ends
 end
-
-
-
-
 
 function GameManager:HandlePlayerDeath(playerNameOrId)
     if not self.isGameRunning then return end
@@ -260,8 +275,6 @@ function GameManager:GetCount(object)
     return count
 end
 
-
-
 function GameManager:SpawnPlayers(readyPlayers)
     if not readyPlayers then return end
     
@@ -327,25 +340,6 @@ function GameManager:SetupKillBrick()
     end)
 end
 
--- function GameManager:SetupPlayerDeathHandlers(readyPlayers)
---     for userId, _ in pairs(readyPlayers) do
---         if typeof(userId) == "number" then
---             local player = Players:GetPlayerByUserId(userId)
---             if player and player.Character then
---                 local humanoid = player.Character:WaitForChild("Humanoid")
---                 humanoid.Died:Connect(function()
---                     self:HandlePlayerDeath(userId)
---                 end)
---             end
-            
---             -- Also handle when player's character is removed
---             player.CharacterRemoving:Connect(function()
---                 self:HandlePlayerDeath(userId)
---             end)
---         end
---     end
--- end
-
 function GameManager:StartTileRemovalLoop()
     task.spawn(function()
         while self.isGameRunning do
@@ -356,24 +350,6 @@ function GameManager:StartTileRemovalLoop()
         end
     end)
 end
-
-
--- function GameManager:HandleRequestGameState(player)
---     print(`[GameManager] Handling request game state for {player.Name}`)
---     print(`[GameManager] Game running: {self.isGameRunning}`)
---     -- Send current game state
---     ClientEvent:FireClient(player, GameEvents.GameState, {
---         isRunning = self.isGameRunning,
---         endReason = nil
---     })
-
---     -- Send current HUD data
---     ClientEvent:FireClient(player, GameEvents.UpdateHUD, {
---         playerCount = self:GetCount(self.isGameRunning and self.activePlayers or self.readyPlayers),
---         tileCount = #self.tileManager.activeTilesList,
---         timeLeft = self.isGameRunning and self.gameTimer or self.lobbyTimer
---     })
--- end
 
 function GameManager:TeleportPlayerToSpawn(player)
     player.Character:PivotTo(SpawnLocation.CFrame + Vector3.new(0, 20, 0))

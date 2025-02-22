@@ -90,11 +90,13 @@ function Shared.UpdateGems(player: Player, amount: number)
     print(data)
     ClientEvent:FireClient(player, GameEvents.UpdateState, {gems = data.gems})
 end
--- function Shared.SetData(player: Player, data: PlayerDataTemplate.PlayerData)
---     local profile = Profiles[player]
---     if profile == nil then return end
---     profile.Data = data
--- end
+
+function Shared.UpdateWins(player: Player, amount: number)
+    local data = Shared.GetData(player)
+    if not data then return end
+    local wins = data.wins
+    data.wins = wins + amount
+end
 
 
 
