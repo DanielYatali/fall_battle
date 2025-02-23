@@ -32,6 +32,13 @@ function KickHandler.new(humanoid, rootPart, character)
     state.Character = character
     state.cooldownUI = CooldownUI.new()
 
+    -- Connect button press for mobile users
+    state.cooldownUI.button.Activated:Connect(function()
+        if state.cooldownUI.isReady() then
+            KickHandler.Activate()
+        end
+    end)
+
     -- Start cooldown update loop
     task.spawn(function()
         while state.Character do

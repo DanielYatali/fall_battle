@@ -16,10 +16,19 @@ local function createCooldownFrame()
     -- Create main frame
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 60, 0, 60)
-    frame.Position = UDim2.new(0.85, 0, 0.8, 0)
+    frame.Position = UDim2.new(0.85, 0, 0.49, 0)
     frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     frame.BorderSizePixel = 0
     frame.Name = "KickCooldown"
+    
+    -- Make the frame interactive
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.Position = UDim2.new(0, 0, 0, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Name = "KickButton"
+    button.Parent = frame
     
     -- Add corner radius
     local corner = Instance.new("UICorner")
@@ -96,11 +105,14 @@ end
 function CooldownUI.new()
     local cooldownFrame = createCooldownFrame()
     local lastProgress = 0
+    local isReady = false
     
     local function updateCooldown(progress)
         local overlay = cooldownFrame.BackgroundCircle.Overlay
         local timeLabel = cooldownFrame.TimeLabel
         local glowEffect = cooldownFrame.GlowEffect
+        
+        isReady = progress >= 1
         
         -- Update progress bar
         overlay.Size = UDim2.new(1, 0, 1 - progress, 0)
@@ -138,8 +150,11 @@ function CooldownUI.new()
         lastProgress = progress
     end
     
+    -- Return the button for input handling
     return {
-        updateCooldown = updateCooldown
+        updateCooldown = updateCooldown,
+        button = cooldownFrame.KickButton,
+        isReady = function() return isReady end
     }
 end
 
