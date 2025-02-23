@@ -27,6 +27,24 @@ local EventHandlers = {
     end,
     [GameEvents.UpdateState] = function(data)
         GUI:UpdateState(data)
+    end,
+    [GameEvents.ApplyKnockback] = function(data)
+        local character = localPlayer.Character
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local humanoid = character:FindFirstChild("Humanoid")
+            if rootPart and humanoid then
+                -- Don't disable jumping or movement controls
+                humanoid.PlatformStand = false
+                humanoid.AutoRotate = true
+                
+                -- Apply the knockback force
+                rootPart.Anchored = false
+                rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                rootPart:ApplyImpulse(data.impulseVector)
+                rootPart.AssemblyLinearVelocity = data.impulseVector / data.mass
+            end
+        end
     end
 }
 

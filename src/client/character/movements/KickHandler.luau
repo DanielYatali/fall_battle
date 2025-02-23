@@ -7,7 +7,7 @@ local CooldownUI = require(script.Parent.Parent.ui.CooldownUI)
 
 local KickHandler = {}
 
-local COOLDOWN_DURATION = 13 -- 20 second cooldown
+local COOLDOWN_DURATION = 5 -- 20 second cooldown
 
 local state = {
     Humanoid = nil,

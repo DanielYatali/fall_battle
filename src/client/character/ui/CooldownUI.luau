@@ -134,7 +134,7 @@ function CooldownUI.new()
                 end)
             end
         else
-            local timeLeft = math.ceil((1 - progress) * 13)
+            local timeLeft = math.ceil((1 - progress) * 5)
             timeLabel.Text = tostring(timeLeft)
             timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             glowEffect.Visible = false

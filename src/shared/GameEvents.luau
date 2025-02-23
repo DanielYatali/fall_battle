@@ -8,7 +8,8 @@ local GameEvents = {
     SetState = "SetState",
     UpdateState = "UpdateState",
     PlayAnimation = "PlayAnimation",
-    Kick = "Kick"
+    Kick = "Kick",
+    ApplyKnockback = "ApplyKnockback"
 }
 
 return GameEvents 
