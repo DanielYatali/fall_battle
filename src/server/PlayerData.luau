@@ -24,11 +24,34 @@ local Local = {}
 
 local Shared = {}
 
+function Local.SetLeaderStatsValue(player: Player, statName: string, value: number)
+    local leaderstats = player:WaitForChild("leaderstats")
+    local stat = leaderstats:WaitForChild(statName)
+    stat.Value = value
+end
+
+function Local.SetupLeaderstats(player: Player)
+    print("Setting up leaderstats for " .. player.Name)
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"
+    leaderstats.Parent = player
+
+    local wins = Instance.new("IntValue")
+    wins.Name = "Wins"
+    wins.Parent = leaderstats
+
+    Local.SetLeaderStatsValue(player, "Wins", 0)
+
+    return leaderstats
+end
+
+
 function Local.OnStart()
     for _, player in Players:GetPlayers() do
         task.spawn(Local.LoadProfile, player)
     end
     Players.PlayerAdded:Connect(function(player)
+        Local.SetupLeaderstats(player)
         Local.LoadProfile(player)
     end)
     Players.PlayerRemoving:Connect(function(player)
@@ -60,6 +83,7 @@ function Local.LoadProfile(player: Player)
         Profiles[player] = profile
         local data = Shared.GetData(player)
         if data then
+            Local.SetLeaderStatsValue(player, "Wins", data.wins)
             ClientEvent:FireClient(player, GameEvents.SetState, data)
         end
     else
@@ -96,6 +120,7 @@ function Shared.UpdateWins(player: Player, amount: number)
     if not data then return end
     local wins = data.wins
     data.wins = wins + amount
+    Local.SetLeaderStatsValue(player, "Wins", data.wins)
 end
 
 

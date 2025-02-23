@@ -39,6 +39,15 @@ local BATCH_SIZE = 50 -- Reduced from 50 to 20 tiles per batch
 local BATCH_DELAY = 0.1 -- Added delay between batches in seconds
 local ObjectPool = {} -- Pool for reusing tile models
 
+-- Add this at the top with other constants
+local DEFAULT_COLORS = {
+    Block1 = Color3.fromRGB(58, 125, 21),
+    Block2 = Color3.fromRGB(58, 125, 21),
+    Block3 = Color3.fromRGB(58, 125, 21),
+    Block4 = Color3.fromRGB(58, 125, 21),
+    Block5 = Color3.fromRGB(58, 125, 21),
+}
+
 function TileManager.new()
     local self = setmetatable({}, TileManager)
     self.tiles = {}
@@ -77,23 +86,27 @@ function TileManager:ShouldCreateTile(x, z, layout)
     return true
 end
 
--- Add this new function for object pooling
+-- Modify GetTileFromPool to reset the color
 function TileManager:GetTileFromPool(modelNumber)
     -- Check if we have this model type in the pool
     if not ObjectPool[modelNumber] then
         ObjectPool[modelNumber] = {}
     end
     
+    local tile
     -- Reuse a tile from pool if available
     if #ObjectPool[modelNumber] > 0 then
-        local tile = table.remove(ObjectPool[modelNumber])
+        tile = table.remove(ObjectPool[modelNumber])
+        -- Reset the color to original
+        local tilePart = tile:WaitForChild("Part")
+        tilePart.Color = DEFAULT_COLORS["Block" .. modelNumber]
         tile.Parent = TilesFolder
         return tile
     end
     
     -- Create new tile if none in pool
-    local tileModel = TileModels:WaitForChild("Block" .. modelNumber):Clone()
-    return tileModel
+    tile = TileModels:WaitForChild("Block" .. modelNumber):Clone()
+    return tile
 end
 
 -- Add this helper function to sort tiles by distance from center

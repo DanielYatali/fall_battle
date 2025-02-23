@@ -16,8 +16,8 @@ local CONSTANTS = {
     LOBBY_COUNTDOWN = 20,
     MINIMUM_PLAYERS = 2,
     SPAWN_HEIGHT_OFFSET = 40,
-    TILE_REMOVAL_INTERVAL = 0.5,
-    TILE_REMOVAL_COUNT = 1,
+    TILE_REMOVAL_INTERVAL = 0.75,
+    TILE_REMOVAL_COUNT = 2,
     REWARD_MULTIPLIER = 20
 }
 
@@ -159,8 +159,9 @@ function GameManager:StartGame(readyPlayers)
     end
     
     -- Handle single player case
-    if self:GetReadyPlayerCount() == 1 then
-        self:AddBots(20)
+    local playerCount = self:GetCount(self.readyPlayers)
+    if playerCount < 20 then
+        self:AddBots(20 - playerCount)
     end
     
     -- Add ready players to active players and notify them
@@ -220,6 +221,7 @@ function GameManager:HandlePlayerDeath(playerNameOrId)
 
             if winnerType == "Player" then
                 self.PlayerData.UpdateGems(winner, rewardInt)
+                self.PlayerData.UpdateWins(winner, 1)
                 ClientEvent:FireClient(winner, GameEvents.Results, {result = "Winner", won = true,rewardAmount = rewardInt})
                 self:TeleportPlayerToSpawn(winner)
             end

@@ -37,7 +37,9 @@ function GUIhandler.new(player)
     self.summaryText = self.summaryFrame:WaitForChild("Summary")
     self.SummaryButton = self.summaryFrame:WaitForChild("TextButton")
     self.RewardAmount = self.summaryFrame:WaitForChild("RewardAmount")
-    self.gemsLabel = self.topFrame:WaitForChild("GemsCount")
+    self.gems = self.playerGui:WaitForChild("Gems")
+    self.gems.Enabled = true
+    self.gemsLabel = self.gems:WaitForChild("GemsCount")
 
     self.isReady = false
     self:BindEvents()
